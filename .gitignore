@@ -1,0 +1,27 @@
+# Build output
+/build/
+/stegobmp
+
+# Object and dependency files
+*.o
+*.d
+
+# Debugging / profiling
+core
+core.*
+vgcore.*
+*.dSYM/
+gmon.out
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+tmp/
