@@ -1,34 +1,172 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-static void print_banner(void) {
-    printf("stegobmp - Steganography tool\n");
-    printf("Use --help for usage information.\n");
+#include "bmp.h"
+#include "cli.h"
+#include "payload.h"
+#include "steg.h"
+#include "stegobmp.h"
+
+#define EXIT_OK      0
+#define EXIT_RUNTIME 1
+#define EXIT_USAGE   2
+
+/* Reads a whole file. On success *buf is malloc'ed (never NULL). */
+static StegoStatus read_file(const char *path, uint8_t **buf, size_t *size) {
+    FILE *f = fopen(path, "rb");
+    if (f == NULL) {
+        stego_set_error("no se pudo abrir '%s' para lectura", path);
+        return STEGO_ERR_IO;
+    }
+
+    long len = -1;
+    if (fseek(f, 0, SEEK_END) == 0) {
+        len = ftell(f);
+    }
+    if (len < 0 || fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        stego_set_error("no se pudo determinar el tamaño de '%s'", path);
+        return STEGO_ERR_IO;
+    }
+
+    uint8_t *data = malloc(len > 0 ? (size_t)len : 1);
+    if (data == NULL) {
+        fclose(f);
+        stego_set_error("sin memoria para leer '%s'", path);
+        return STEGO_ERR_MEMORY;
+    }
+    if (fread(data, 1, (size_t)len, f) != (size_t)len) {
+        fclose(f);
+        free(data);
+        stego_set_error("error leyendo '%s'", path);
+        return STEGO_ERR_IO;
+    }
+    fclose(f);
+
+    *buf = data;
+    *size = (size_t)len;
+    return STEGO_OK;
 }
 
-static void print_help(void) {
-    printf("stegobmp - Steganography tool\n");
-    printf("\n");
-    printf("Usage:\n");
-    printf("  stegobmp --help\n");
-    printf("\n");
-    printf("Planned operations (not implemented yet):\n");
-    printf("  -embed     Hide a file inside a BMP image\n");
-    printf("  -extract   Recover a hidden file from a BMP image\n");
+static StegoStatus write_file(const char *path, const uint8_t *buf,
+                              size_t size) {
+    FILE *f = fopen(path, "wb");
+    if (f == NULL) {
+        stego_set_error("no se pudo abrir '%s' para escritura", path);
+        return STEGO_ERR_IO;
+    }
+    bool ok = fwrite(buf, 1, size, f) == size;
+    if (fclose(f) != 0) {
+        ok = false;
+    }
+    if (!ok) {
+        stego_set_error("error escribiendo '%s'", path);
+        return STEGO_ERR_IO;
+    }
+    return STEGO_OK;
+}
+
+/*
+ * TODO(etapa 2): remove. While the hiding code does not exist, -embed writes
+ * an unmodified copy of the carrier and says so. Returns true when `st` is
+ * the "not implemented" placeholder.
+ */
+static bool placeholder_hit(StegoStatus st) {
+    if (st != STEGO_ERR_NOT_IMPLEMENTED) {
+        return false;
+    }
+    fprintf(stderr, "stegobmp: aviso: %s\n"
+                    "stegobmp: aviso: se escribe una copia sin modificar del "
+                    "portador\n", stego_error_message());
+    return true;
+}
+
+static StegoStatus run_embed(const Options *opts) {
+    Bmp bmp;
+    uint8_t *file = NULL, *stream = NULL;
+    size_t file_size = 0, stream_size = 0;
+    char ext[PAYLOAD_EXT_MAX];
+
+    /* The carrier is validated first: an unusable BMP is the clearest error. */
+    StegoStatus st = bmp_load(opts->carrier_path, &bmp);
+    if (st != STEGO_OK) {
+        return st;
+    }
+    if ((st = read_file(opts->in_path, &file, &file_size)) != STEGO_OK ||
+        (st = payload_ext_from_path(opts->in_path, ext)) != STEGO_OK) {
+        goto done;
+    }
+
+    st = payload_build(file, file_size, ext, opts, &stream, &stream_size);
+    if (st == STEGO_OK) {
+        st = steg_embed(&bmp, opts->method, stream, stream_size);
+    }
+    if (placeholder_hit(st)) {
+        st = STEGO_OK;
+    }
+    if (st == STEGO_OK) {
+        st = bmp_save(opts->out_path, &bmp);
+    }
+
+done:
+    free(file);
+    free(stream);
+    bmp_free(&bmp);
+    return st;
+}
+
+static StegoStatus run_extract(const Options *opts) {
+    Bmp bmp;
+    uint8_t *file = NULL;
+    size_t file_size = 0;
+    char ext[PAYLOAD_EXT_MAX];
+    char *out_path = NULL;
+
+    StegoStatus st = bmp_load(opts->carrier_path, &bmp);
+    if (st != STEGO_OK) {
+        return st;
+    }
+    st = payload_extract(&bmp, opts, &file, &file_size, ext);
+    if (st != STEGO_OK) {
+        goto done;
+    }
+
+    /* -out has no extension: the recovered one is appended. */
+    out_path = malloc(strlen(opts->out_path) + strlen(ext) + 1);
+    if (out_path == NULL) {
+        stego_set_error("sin memoria");
+        st = STEGO_ERR_MEMORY;
+        goto done;
+    }
+    strcpy(out_path, opts->out_path);
+    strcat(out_path, ext);
+    st = write_file(out_path, file, file_size);
+
+done:
+    free(out_path);
+    free(file);
+    bmp_free(&bmp);
+    return st;
 }
 
 int main(int argc, char *argv[]) {
-    if (argc == 1) {
-        print_banner();
-        return 0;
+    Options opts;
+
+    if (cli_parse(argc, argv, &opts) != STEGO_OK) {
+        fprintf(stderr, "stegobmp: error: %s\n\n", stego_error_message());
+        cli_print_usage(stderr);
+        return EXIT_USAGE;
+    }
+    if (opts.show_help) {
+        cli_print_usage(stdout);
+        return EXIT_OK;
     }
 
-    if (strcmp(argv[1], "--help") == 0) {
-        print_help();
-        return 0;
+    StegoStatus st = opts.op == OP_EMBED ? run_embed(&opts) : run_extract(&opts);
+    if (st != STEGO_OK) {
+        fprintf(stderr, "stegobmp: error: %s\n", stego_error_message());
+        return EXIT_RUNTIME;
     }
-
-    fprintf(stderr, "stegobmp: unknown option '%s'\n", argv[1]);
-    fprintf(stderr, "Use --help for usage information.\n");
-    return 1;
+    return EXIT_OK;
 }
