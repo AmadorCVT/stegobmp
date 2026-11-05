@@ -67,21 +67,6 @@ static StegoStatus write_file(const char *path, const uint8_t *buf,
     return STEGO_OK;
 }
 
-/*
- * TODO(etapa 2): remove. While the hiding code does not exist, -embed writes
- * an unmodified copy of the carrier and says so. Returns true when `st` is
- * the "not implemented" placeholder.
- */
-static bool placeholder_hit(StegoStatus st) {
-    if (st != STEGO_ERR_NOT_IMPLEMENTED) {
-        return false;
-    }
-    fprintf(stderr, "stegobmp: aviso: %s\n"
-                    "stegobmp: aviso: se escribe una copia sin modificar del "
-                    "portador\n", stego_error_message());
-    return true;
-}
-
 static StegoStatus run_embed(const Options *opts) {
     Bmp bmp;
     uint8_t *file = NULL, *stream = NULL;
@@ -101,9 +86,6 @@ static StegoStatus run_embed(const Options *opts) {
     st = payload_build(file, file_size, ext, opts, &stream, &stream_size);
     if (st == STEGO_OK) {
         st = steg_embed(&bmp, opts->method, stream, stream_size);
-    }
-    if (placeholder_hit(st)) {
-        st = STEGO_OK;
     }
     if (st == STEGO_OK) {
         st = bmp_save(opts->out_path, &bmp);

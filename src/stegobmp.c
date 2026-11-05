@@ -20,11 +20,6 @@ const char *stego_error_message(void) {
     return last_error;
 }
 
-StegoStatus stego_not_implemented(const char *what) {
-    stego_set_error("%s: no implementado todavía", what);
-    return STEGO_ERR_NOT_IMPLEMENTED;
-}
-
 /* ------------------------------------------------------------------------ */
 /* Names (same order as the enums in stegobmp.h)                            */
 /* ------------------------------------------------------------------------ */

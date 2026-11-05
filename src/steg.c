@@ -1,23 +1,16 @@
 #include "steg.h"
 
 size_t steg_capacity(StegMethod method, const Bmp *bmp) {
-    switch (method) {
-    case STEG_LSB1:
-        return bmp->data_size / 8;
-    case STEG_LSB4:
-        return bmp->data_size / 2;
-    case STEG_LSBI:
-        return bmp->data_size < 4 ? 0 : (bmp->data_size - 4) / 8;
-    }
-    return 0;
+    return bmp_capacity_bytes(bmp, method);
 }
 
 StegoStatus steg_embed(Bmp *bmp, StegMethod method,
                        const uint8_t *data, size_t len) {
     size_t capacity = steg_capacity(method, bmp);
     if (len > capacity) {
-        stego_set_error("el portador no puede albergar los datos: se "
-                        "necesitan %zu bytes y la capacidad máxima con %s es "
+        stego_set_error("el archivo no entra en el portador: hay que ocultar "
+                        "%zu bytes (incluye el tamaño, la extensión y, si hay "
+                        "cifrado, el relleno) y la capacidad máxima con %s es "
                         "de %zu bytes", len, stego_method_name(method),
                         capacity);
         return STEGO_ERR_CAPACITY;

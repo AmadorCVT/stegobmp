@@ -25,6 +25,18 @@ static long file_length(FILE *f) {
     return len;
 }
 
+size_t bmp_capacity_bytes(const Bmp *bmp, StegMethod method) {
+    switch (method) {
+    case STEG_LSB1:
+        return bmp->data_size / 8;
+    case STEG_LSB4:
+        return bmp->data_size / 2;
+    case STEG_LSBI:
+        return bmp->data_size < 4 ? 0 : (bmp->data_size - 4) / 8;
+    }
+    return 0;
+}
+
 void bmp_free(Bmp *bmp) {
     free(bmp->header);
     free(bmp->data);

@@ -44,6 +44,15 @@ StegoStatus bmp_load(const char *path, Bmp *bmp);
  */
 StegoStatus bmp_save(const char *path, const Bmp *bmp);
 
+/*
+ * Maximum number of stream bytes `method` can hide in `bmp`:
+ *   LSB1: data_size / 8        (1 stream bit  per body byte)
+ *   LSB4: data_size / 2        (4 stream bits per body byte)
+ *   LSBI: (data_size - 4) / 8  (the first 4 body bytes hold the pattern bits)
+ * The stream includes the 4 size bytes and the extension.
+ */
+size_t bmp_capacity_bytes(const Bmp *bmp, StegMethod method);
+
 /* Releases the buffers and zeroes the struct. Safe on a zeroed Bmp. */
 void bmp_free(Bmp *bmp);
 

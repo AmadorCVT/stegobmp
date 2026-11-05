@@ -28,8 +28,7 @@ typedef enum {
     STEGO_ERR_CAPACITY,        /* the carrier is too small */
     STEGO_ERR_CRYPTO,          /* cipher failure (e.g. wrong password) */
     STEGO_ERR_CORRUPT,         /* hidden data is inconsistent */
-    STEGO_ERR_MEMORY,          /* out of memory */
-    STEGO_ERR_NOT_IMPLEMENTED  /* placeholder body, not written yet */
+    STEGO_ERR_MEMORY           /* out of memory */
 } StegoStatus;
 
 /* ------------------------------------------------------------------------ */
@@ -110,12 +109,6 @@ void stego_set_error(const char *fmt, ...) STEGO_PRINTF_LIKE(1, 2);
 
 /* Last message stored with stego_set_error() ("" if none). */
 const char *stego_error_message(void);
-
-/*
- * Convenience for placeholder bodies: sets the message "<what>: no
- * implementado todavía" and returns STEGO_ERR_NOT_IMPLEMENTED.
- */
-StegoStatus stego_not_implemented(const char *what);
 
 /* Names exactly as typed on the command line (LSB1, aes128, cbc, ...). */
 const char *stego_method_name(StegMethod method);

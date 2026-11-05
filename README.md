@@ -2,7 +2,7 @@
 
 Herramienta de línea de comandos en C para ocultar y recuperar archivos dentro de imágenes BMP mediante esteganografía. Trabajo Práctico de Criptografía y Seguridad.
 
-> Estado actual: etapa 1 (esqueleto y contratos). La línea de comandos y la lectura/escritura de BMP funcionan. `-embed` escribe una copia idéntica del portador (todavía no oculta nada) y `-extract` informa que no está implementado. Los cuerpos de `lsb.c`, `lsbi.c`, `crypto.c` y `payload.c` son marcadores a reemplazar por sus responsables.
+> Estado actual: etapa 2. La línea de comandos, la lectura/escritura de BMP, el formato del payload (`tamaño || archivo || extensión`) y el cálculo de capacidad funcionan. Las funciones de `lsb.c`, `lsbi.c` y `crypto.c` están declaradas con el cuerpo vacío y las tienen que implementar sus responsables. El archivo a ocultar debe tener extensión.
 
 ## Requisitos
 
@@ -24,6 +24,12 @@ make
 ```
 
 Genera el ejecutable `./stegobmp`. Los archivos objeto quedan en `build/`.
+
+Para compilar y correr las pruebas (`tests/test_*.c`):
+
+```bash
+make test
+```
 
 Para borrar todo lo generado:
 
