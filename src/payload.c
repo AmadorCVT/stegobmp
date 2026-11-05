@@ -3,6 +3,7 @@
  */
 #include "payload.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -223,6 +224,14 @@ StegoStatus payload_parse(const uint8_t *stream, size_t stream_size,
                                     stream + SIZE_FIELD, cipher_size,
                                     &plain, &plain_size);
     if (st != STEGO_OK) {
+        if (st == STEGO_ERR_CRYPTO) {
+            /* Keep the detail given by crypto.c and make the cause explicit.
+             * Nothing is written to disk: main.c only writes on STEGO_OK. */
+            char detail[256];
+            snprintf(detail, sizeof detail, "%s", stego_error_message());
+            stego_set_error("no se pudo descifrar los datos ocultos (%s) %s",
+                            detail, CORRUPT_HINT);
+        }
         return st;
     }
     st = parse_plain(plain, plain_size, file, file_size, ext);

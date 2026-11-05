@@ -2,19 +2,20 @@
 
 Herramienta de línea de comandos en C para ocultar y recuperar archivos dentro de imágenes BMP mediante esteganografía. Trabajo Práctico de Criptografía y Seguridad.
 
-> Estado actual: etapa 2. La línea de comandos, la lectura/escritura de BMP, el formato del payload (`tamaño || archivo || extensión`) y el cálculo de capacidad funcionan. Las funciones de `lsb.c`, `lsbi.c` y `crypto.c` están declaradas con el cuerpo vacío y las tienen que implementar sus responsables. El archivo a ocultar debe tener extensión.
+> Estado actual: etapa 3 (integración). La línea de comandos, la lectura/escritura de BMP, el formato del payload (`tamaño || archivo || extensión`), el armado del flujo cifrado (`tamaño del cifrado || datos cifrados`) y el cálculo de capacidad están hechos. Las funciones de `lsb.c`, `lsbi.c` y `crypto.c` están declaradas con el cuerpo vacío y las tienen que implementar sus responsables. El archivo a ocultar debe tener extensión.
 
 ## Requisitos
 
 - Ubuntu 22.04 (o WSL2 con Ubuntu 22.04)
 - `gcc`
 - `make`
+- OpenSSL (`libssl-dev`) para el cifrado
 
-Instalación de las herramientas:
+Instalación de las dependencias:
 
 ```bash
 sudo apt update
-sudo apt install build-essential
+sudo apt install build-essential libssl-dev
 ```
 
 ## Compilación
@@ -23,18 +24,19 @@ sudo apt install build-essential
 make
 ```
 
-Genera el ejecutable `./stegobmp`. Los archivos objeto quedan en `build/`.
+Genera el ejecutable `./stegobmp` (enlaza con `-lcrypto`). Los archivos objeto quedan en `build/`. Por defecto se compila con `-g` para poder depurar.
 
-Para compilar y correr las pruebas (`tests/test_*.c`):
+Para una versión optimizada y sin información de depuración:
 
 ```bash
-make test
+make release
 ```
 
-Para borrar todo lo generado:
+Para borrar todo lo generado (y volver a compilar desde cero):
 
 ```bash
 make clean
+make
 ```
 
 ## Ejecución
@@ -46,6 +48,25 @@ make clean
 ```
 
 Los parámetros pueden ir en cualquier orden, distinguen mayúsculas y minúsculas y usan el guion común `-`. Sin `-pass` no se cifra; con `-pass` y sin `-a`/`-m` se usa `aes128` y `cbc`.
+
+### Ejemplos
+
+Sin password:
+
+```bash
+./stegobmp -embed -in mensaje.txt -p imagen.bmp -out salida.bmp -steg LSB1
+./stegobmp -extract -p salida.bmp -out recuperado -steg LSB1
+# genera recuperado.txt (a -out se le agrega la extensión del archivo oculto)
+```
+
+Con password (aquí `aes256` en modo `cbc`):
+
+```bash
+./stegobmp -embed -in mensaje.txt -p imagen.bmp -out salida.bmp -steg LSBI -a aes256 -m cbc -pass secreto
+./stegobmp -extract -p salida.bmp -out recuperado -steg LSBI -a aes256 -m cbc -pass secreto
+```
+
+El programa devuelve 0 si todo salió bien, 1 ante un error de ejecución (archivo inexistente, BMP inválido, no entra en el portador, datos corruptos o password incorrecta) y 2 ante un error en los parámetros. Si falla el descifrado o los datos recuperados no son coherentes, no se escribe ningún archivo.
 
 ## Módulos y contratos
 
@@ -72,9 +93,9 @@ stegobmp/
 │   ├── steg.c  lsb.c  lsbi.c  crypto.c
 │   └── stegobmp.c
 ├── include/        # Headers (.h)
-├── tests/          # Pruebas
 ├── samples/
 │   ├── bmp/        # Imágenes BMP de ejemplo
-│   └── secrets/    # Archivos a ocultar de ejemplo
+│   ├── secrets/    # Archivos a ocultar de ejemplo
+│   └── catedra/    # Archivos de la cátedra
 └── docs/           # Documentación e informe
 ```

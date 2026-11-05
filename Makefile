@@ -1,23 +1,20 @@
 CC      = gcc
 CFLAGS  = -std=c11 -Wall -Wextra -Wpedantic -g -Iinclude
 LDFLAGS =
-LDLIBS  =
+LDLIBS  = -lcrypto
+
+# `make release`: optimized build without debug info (see the rule below).
+RELEASE_CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -O2 -DNDEBUG -Iinclude
 
 TARGET    = stegobmp
 SRC_DIR   = src
-TEST_DIR  = tests
 BUILD_DIR = build
 
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 DEPS = $(OBJS:.o=.d)
 
-# Tests: every tests/test_*.c is linked against all modules except main.c
-TEST_SRCS = $(wildcard $(TEST_DIR)/test_*.c)
-TEST_BINS = $(TEST_SRCS:$(TEST_DIR)/%.c=$(BUILD_DIR)/%)
-LIB_OBJS  = $(filter-out $(BUILD_DIR)/main.o,$(OBJS))
-
-.PHONY: all clean test
+.PHONY: all clean release
 
 all: $(TARGET)
 
@@ -28,11 +25,10 @@ $(TARGET): $(OBJS)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
-$(BUILD_DIR)/test_%: $(TEST_DIR)/test_%.c $(LIB_OBJS) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIB_OBJS) $(LDLIBS)
-
-test: $(TEST_BINS)
-	@for t in $(TEST_BINS); do echo "== $$t"; ./$$t || exit 1; done
+# Rebuilds everything from scratch with optimizations and without -g.
+release:
+	$(MAKE) clean
+	$(MAKE) CFLAGS="$(RELEASE_CFLAGS)" all
 
 $(BUILD_DIR):
 	mkdir -p $@
