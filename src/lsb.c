@@ -27,7 +27,18 @@ StegoStatus lsb1_extract(const Bmp *bmp, size_t len, uint8_t *out) {
 }
 
 StegoStatus lsb4_embed(Bmp *bmp, const uint8_t *data, size_t len) {
+    for(size_t i = 0; i < len; i++){
+        //cada byte del secreto ocupa 2 bytes de la imagen: primero el nibble alto, despues el bajo
+        bmp->data[2 * i]     = (uint8_t) ((bmp->data[2 * i]     & 0xF0) | (data[i] >> 4));
+        bmp->data[2 * i + 1] = (uint8_t) ((bmp->data[2 * i + 1] & 0xF0) | (data[i] & 0x0F));
+    }
+    return STEGO_OK;
 }
 
 StegoStatus lsb4_extract(const Bmp *bmp, size_t len, uint8_t *out) {
+    for(size_t i = 0; i < len; i++){
+        //junto los 4 bits bajos de 2 bytes consecutivos de la imagen: el primero es el nibble alto
+        out[i] = (uint8_t) (((bmp->data[2 * i] & 0x0F) << 4) | (bmp->data[2 * i + 1] & 0x0F));
+    }
+    return STEGO_OK;
 }
