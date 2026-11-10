@@ -8,6 +8,7 @@
 #include "crypto.h"
 #include "stegobmp.h"
 #include <openssl/evp.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define PBKDF2_SALT  {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
@@ -30,39 +31,68 @@ static const EVP_CIPHER *(*const cipher_map[4][4])(void) = {
  */
 static StegoStatus get_key_iv(const EVP_CIPHER *cipher, const char *password, uint8_t *key_out, uint8_t *iv_out);
 
+
+
 StegoStatus crypto_encrypt(CipherAlgo algo, CipherMode mode,
                            const char *password,
                            const uint8_t *in, size_t in_len,
                            uint8_t **out, size_t *out_len) {
     
-    if (password == NULL || in == NULL || out == NULL || out_len == NULL) {
+    if (password == NULL || in == NULL || out == NULL || out_len == NULL || algo < 0 || mode < 0 || algo > 3 || mode > 3) {
         stego_set_error("Invalid parameters, aborting encryption");
         return STEGO_ERR_ARGS;
     }
 
+    const EVP_CIPHER *cipher = cipher_map[algo][mode]();
+
+    uint8_t key[EVP_MAX_KEY_LENGTH], iv_raw[EVP_MAX_IV_LENGTH];
+    StegoStatus err = get_key_iv(cipher, password, key, iv_raw);
+    if (err != STEGO_OK) {
+        return err;
+    }
+    const uint8_t *iv = (EVP_CIPHER_iv_length(cipher) > 0) ? iv_raw : NULL;
+
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); 
     if (ctx == NULL) {
         stego_set_error("Failed to create encryption context");
+        return STEGO_ERR_MEMORY;
+    }
+
+    if (EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv) != 1) {
+        stego_set_error("Failed to initialize encryption");
+        EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
     }
 
-    const EVP_CIPHER *cipher = cipher_map[algo][mode]();
-    uint8_t key_out[EVP_MAX_KEY_LENGTH], iv_out[EVP_MAX_IV_LENGTH];
-    StegoStatus err = get_key_iv(cipher, password, key_out, iv_out);
-    if (err != STEGO_OK) {
+    int block_size = EVP_CIPHER_block_size(cipher);
+    uint8_t *ciphertext = malloc(in_len + block_size);
+    if (ciphertext == NULL) {
+        stego_set_error("No memory for ciphertext buffer");
         EVP_CIPHER_CTX_free(ctx);
-        return err;
+        return STEGO_ERR_MEMORY;
     }
 
-
-
+    int len1 = 0;
+    if (EVP_EncryptUpdate(ctx, ciphertext, &len1, in, (int)in_len) != 1) {
+        stego_set_error("Failed to encrypt with EVP_EncryptUpdate");
+        free(ciphertext);
+        EVP_CIPHER_CTX_free(ctx);
+        return STEGO_ERR_CRYPTO;
+    }
     
+    int len2 = 0;
+    if (EVP_EncryptFinal_ex(ctx, ciphertext + len1, &len2) != 1) {
+        stego_set_error("Failed to finalize encryption with EVP_EncryptFinal_ex");
+        free(ciphertext);
+        EVP_CIPHER_CTX_free(ctx);
+        return STEGO_ERR_CRYPTO;
+    }
     
-    
-
-
+    *out = ciphertext;
+    *out_len = (size_t)(len1 + len2);
     
     EVP_CIPHER_CTX_free(ctx);
+    return STEGO_OK;
 }
 
 StegoStatus crypto_decrypt(CipherAlgo algo, CipherMode mode,
