@@ -39,7 +39,7 @@ StegoStatus crypto_encrypt(CipherAlgo algo, CipherMode mode,
                            uint8_t **out, size_t *out_len) {
     
     if (password == NULL || in == NULL || out == NULL || out_len == NULL || algo < 0 || mode < 0 || algo > 3 || mode > 3) {
-        stego_set_error("Invalid parameters, aborting encryption");
+        stego_set_error("Parámetros inválidos al intentar cifrar");
         return STEGO_ERR_ARGS;
     }
 
@@ -54,12 +54,12 @@ StegoStatus crypto_encrypt(CipherAlgo algo, CipherMode mode,
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); 
     if (ctx == NULL) {
-        stego_set_error("Failed to create encryption context");
+        stego_set_error("No se pudo crear el contexto de cifrado");
         return STEGO_ERR_MEMORY;
     }
 
     if (EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv) != 1) {
-        stego_set_error("Failed to initialize encryption");
+        stego_set_error("Falló la inicialización del cifrado");
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
     }
@@ -67,14 +67,14 @@ StegoStatus crypto_encrypt(CipherAlgo algo, CipherMode mode,
     int block_size = EVP_CIPHER_block_size(cipher);
     uint8_t *ciphertext = malloc(in_len + block_size);
     if (ciphertext == NULL) {
-        stego_set_error("No memory for ciphertext buffer");
+        stego_set_error("Sin memoria para el buffer de texto cifrado");
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_MEMORY;
     }
 
     int len1 = 0;
     if (EVP_EncryptUpdate(ctx, ciphertext, &len1, in, (int)in_len) != 1) {
-        stego_set_error("Failed to encrypt with EVP_EncryptUpdate");
+        stego_set_error("Falló el cifrado de datos (EVP_EncryptUpdate)");
         free(ciphertext);
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
@@ -82,7 +82,7 @@ StegoStatus crypto_encrypt(CipherAlgo algo, CipherMode mode,
     
     int len2 = 0;
     if (EVP_EncryptFinal_ex(ctx, ciphertext + len1, &len2) != 1) {
-        stego_set_error("Failed to finalize encryption with EVP_EncryptFinal_ex");
+        stego_set_error("Falló la finalización del cifrado (EVP_EncryptFinal_ex)");
         free(ciphertext);
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
@@ -101,7 +101,7 @@ StegoStatus crypto_decrypt(CipherAlgo algo, CipherMode mode,
                            uint8_t **out, size_t *out_len) {
 
     if (password == NULL || in == NULL || out == NULL || out_len == NULL || algo < 0 || mode < 0 || algo > 3 || mode > 3) {
-        stego_set_error("Invalid parameters, aborting decryption");
+        stego_set_error("Parámetros inválidos al intentar descifrar");
         return STEGO_ERR_ARGS;
     }
 
@@ -116,12 +116,12 @@ StegoStatus crypto_decrypt(CipherAlgo algo, CipherMode mode,
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == NULL) {
-        stego_set_error("Failed to create decryption context");
+        stego_set_error("No se pudo crear el contexto de descifrado");
         return STEGO_ERR_MEMORY;
     }
 
     if (EVP_DecryptInit_ex(ctx, cipher, NULL, key, iv) != 1) {
-        stego_set_error("Failed to initialize decryption");
+        stego_set_error("Falló la inicialización del descifrado");
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
     }
@@ -129,14 +129,14 @@ StegoStatus crypto_decrypt(CipherAlgo algo, CipherMode mode,
     int block_size = EVP_CIPHER_block_size(cipher);
     uint8_t *plaintext = malloc(in_len + block_size);
     if (plaintext == NULL) {
-        stego_set_error("No memory for plaintext buffer");
+        stego_set_error("Sin memoria para el buffer de texto descifrado");
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_MEMORY;
     }
 
     int len1 = 0;
     if (EVP_DecryptUpdate(ctx, plaintext, &len1, in, (int)in_len) != 1) {
-        stego_set_error("Failed to decrypt with EVP_DecryptUpdate");
+        stego_set_error("Falló el descifrado de datos (EVP_DecryptUpdate)");
         free(plaintext);
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
@@ -144,7 +144,7 @@ StegoStatus crypto_decrypt(CipherAlgo algo, CipherMode mode,
 
     int len2 = 0;
     if (EVP_DecryptFinal_ex(ctx, plaintext + len1, &len2) != 1) {
-        stego_set_error("Failed to finalize decryption with EVP_DecryptFinal_ex");
+        stego_set_error("Falló la finalización del descifrado (posible contraseña incorrecta o datos corruptos)");
         free(plaintext);
         EVP_CIPHER_CTX_free(ctx);
         return STEGO_ERR_CRYPTO;
@@ -170,7 +170,7 @@ static StegoStatus get_key_iv(const EVP_CIPHER *cipher, const char *password, ui
     // int PKCS5_PBKDF2_HMAC(const char *pass, int passlen, const unsigned char *salt, int saltlen, int iter, const EVP_MD *digest, int keylen, unsigned char *out);
     // Generate key+iv with password, salt = 0x00 (8), 10000 iterations, sha256 algorithm.
     if (!PKCS5_PBKDF2_HMAC(password, (int)strlen(password), salt, sizeof(salt), PBKDF2_ITERATIONS, EVP_sha256(), total_length, key_iv_buf)) {
-        stego_set_error("failed to derive key with PBKDF2");
+        stego_set_error("Falló la derivación de clave e IV con PBKDF2");
         return STEGO_ERR_CRYPTO; 
     }
 
