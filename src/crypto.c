@@ -100,10 +100,61 @@ StegoStatus crypto_decrypt(CipherAlgo algo, CipherMode mode,
                            const uint8_t *in, size_t in_len,
                            uint8_t **out, size_t *out_len) {
 
-    if (password == NULL || in == NULL || out == NULL || out_len == NULL) {
-        stego_set_error("Invalid parameters, aborting encryption");
-        return STEGO_ERR_ARGS;                
+    if (password == NULL || in == NULL || out == NULL || out_len == NULL || algo < 0 || mode < 0 || algo > 3 || mode > 3) {
+        stego_set_error("Invalid parameters, aborting decryption");
+        return STEGO_ERR_ARGS;
     }
+
+    const EVP_CIPHER *cipher = cipher_map[algo][mode]();
+
+    uint8_t key[EVP_MAX_KEY_LENGTH], iv_raw[EVP_MAX_IV_LENGTH];
+    StegoStatus err = get_key_iv(cipher, password, key, iv_raw);
+    if (err != STEGO_OK) {
+        return err;
+    }
+    const uint8_t *iv = (EVP_CIPHER_iv_length(cipher) > 0) ? iv_raw : NULL;
+
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        stego_set_error("Failed to create decryption context");
+        return STEGO_ERR_MEMORY;
+    }
+
+    if (EVP_DecryptInit_ex(ctx, cipher, NULL, key, iv) != 1) {
+        stego_set_error("Failed to initialize decryption");
+        EVP_CIPHER_CTX_free(ctx);
+        return STEGO_ERR_CRYPTO;
+    }
+
+    int block_size = EVP_CIPHER_block_size(cipher);
+    uint8_t *plaintext = malloc(in_len + block_size);
+    if (plaintext == NULL) {
+        stego_set_error("No memory for plaintext buffer");
+        EVP_CIPHER_CTX_free(ctx);
+        return STEGO_ERR_MEMORY;
+    }
+
+    int len1 = 0;
+    if (EVP_DecryptUpdate(ctx, plaintext, &len1, in, (int)in_len) != 1) {
+        stego_set_error("Failed to decrypt with EVP_DecryptUpdate");
+        free(plaintext);
+        EVP_CIPHER_CTX_free(ctx);
+        return STEGO_ERR_CRYPTO;
+    }
+
+    int len2 = 0;
+    if (EVP_DecryptFinal_ex(ctx, plaintext + len1, &len2) != 1) {
+        stego_set_error("Failed to finalize decryption with EVP_DecryptFinal_ex");
+        free(plaintext);
+        EVP_CIPHER_CTX_free(ctx);
+        return STEGO_ERR_CRYPTO;
+    }
+
+    *out = plaintext;
+    *out_len = (size_t)(len1 + len2);
+
+    EVP_CIPHER_CTX_free(ctx);
+    return STEGO_OK;
 }
 
 
