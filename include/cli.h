@@ -1,6 +1,4 @@
-/*
- * cli.h - Command line parsing.
- */
+/* cli.h - parseo de la linea de comandos */
 #ifndef CLI_H
 #define CLI_H
 
@@ -9,17 +7,12 @@
 #include "stegobmp.h"
 
 /*
- * Parses argv into `opts` (options in any order, case sensitive, only the
- * plain '-' prefix). Applies defaults: no -pass => no encryption; -pass
- * without -a => aes128; -pass without -m => cbc.
- *
- * Returns STEGO_ERR_ARGS with a message in stego_error_message() when a
- * parameter is missing, repeated, unexpected or has an invalid value, or when
- * -a / -m are used without -pass. `--help` / `-h` sets opts->show_help.
+ * Llena opts a partir de argv. Si hay -pass sin -a o -m usa aes128 y cbc.
+ * Si falta algo o está mal devuelve STEGO_ERR_ARGS.
  */
 StegoStatus cli_parse(int argc, char *argv[], Options *opts);
 
-/* Prints the correct syntax of the program. */
+/* imprime como se usa */
 void cli_print_usage(FILE *out);
 
 #endif /* CLI_H */

@@ -12,7 +12,7 @@
 #define EXIT_RUNTIME 1
 #define EXIT_USAGE   2
 
-/* Reads a whole file. On success *buf is malloc'ed (never NULL). */
+/* lee el archivo entero, *buf queda con malloc (nunca NULL) */
 static StegoStatus read_file(const char *path, uint8_t **buf, size_t *size) {
     FILE *f = fopen(path, "rb");
     if (f == NULL) {
@@ -73,7 +73,7 @@ static StegoStatus run_embed(const Options *opts) {
     size_t file_size = 0, stream_size = 0;
     char ext[PAYLOAD_EXT_MAX];
 
-    /* The carrier is validated first: an unusable BMP is the clearest error. */
+    /* Primero el portador: si el BMP no sirve, ese es el error más claro. */
     StegoStatus st = bmp_load(opts->carrier_path, &bmp);
     if (st != STEGO_OK) {
         return st;
@@ -114,7 +114,7 @@ static StegoStatus run_extract(const Options *opts) {
         goto done;
     }
 
-    /* -out has no extension: the recovered one is appended. */
+    /* -out viene sin extension, le pegamos la que recuperamos */
     out_path = malloc(strlen(opts->out_path) + strlen(ext) + 1);
     if (out_path == NULL) {
         stego_set_error("sin memoria");

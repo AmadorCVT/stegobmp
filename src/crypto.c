@@ -1,9 +1,4 @@
-/*
- * crypto.c - Encryption with OpenSSL. See the contract in include/crypto.h.
- *
- * Pending: the owner of this file implements these functions (and adds
- * -lcrypto to LDLIBS in the Makefile). Do not change the signatures.
- */
+/* crypto.c - cifrado y descifrado con OpenSSL */
 
 #include "crypto.h"
 #include "stegobmp.h"
@@ -22,12 +17,8 @@ static const EVP_CIPHER *(*const cipher_map[4][4])(void) = {
 };
 
 /*
- * Derives key and IV from password using PBKDF2-HMAC-SHA256 (PBKDF2_ITERATIONS iterations,
- * PBKDF2_SALT salt).
- * Copies key to key_out, and IV to iv_out only if required by the cipher (non-ECB).
- * Returns:
- *   - STEGO_OK on success.
- *   - STEGO_ERR_CRYPTO if PBKDF2 derivation fails.
+ * saca la key y el iv de la password con PBKDF2-HMAC-SHA256.
+ * el iv solo se copia si el modo lo usa (en ECB no hay)
  */
 static StegoStatus get_key_iv(const EVP_CIPHER *cipher, const char *password, uint8_t *key_out, uint8_t *iv_out);
 
@@ -168,7 +159,7 @@ static StegoStatus get_key_iv(const EVP_CIPHER *cipher, const char *password, ui
     uint8_t key_iv_buf[EVP_MAX_KEY_LENGTH + EVP_MAX_IV_LENGTH];
 
     // int PKCS5_PBKDF2_HMAC(const char *pass, int passlen, const unsigned char *salt, int saltlen, int iter, const EVP_MD *digest, int keylen, unsigned char *out);
-    // Generate key+iv with password, salt = 0x00 (8), 10000 iterations, sha256 algorithm.
+    // genera key+iv con la password, salt = 0x00 (8), 10000 iteraciones, sha256
     if (!PKCS5_PBKDF2_HMAC(password, (int)strlen(password), salt, sizeof(salt), PBKDF2_ITERATIONS, EVP_sha256(), total_length, key_iv_buf)) {
         stego_set_error("Falló la derivación de clave e IV con PBKDF2");
         return STEGO_ERR_CRYPTO; 

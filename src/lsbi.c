@@ -1,10 +1,4 @@
-/*
- * lsbi.c - LSB Improved (Majeed & Sulaiman). See the contract in
- * include/steg.h.
- *
- * Pending: the owner of this file implements these functions. Do not change
- * the signatures.
- */
+/* lsbi.c - LSB Improved (Majeed y Sulaiman). Falta implementarlo. */
 #include "steg.h"
 
 StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {

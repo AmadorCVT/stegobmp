@@ -1,6 +1,4 @@
-/*
- * payload.c - Hidden data format. See the contract in include/payload.h.
- */
+/* payload.c - arma y lee lo que se oculta en el bmp (formato en payload.h) */
 #include "payload.h"
 
 #include <stdio.h>
@@ -25,7 +23,7 @@ static uint32_t get_u32_be(const uint8_t *p) {
 }
 
 StegoStatus payload_ext_from_path(const char *path, char ext[PAYLOAD_EXT_MAX]) {
-    /* Look for the last '.' of the file name (after the last separator). */
+    /* buscamos el ultimo '.' del nombre, o sea despues de la ultima barra */
     const char *name = path;
     for (const char *p = path; *p != '\0'; p++) {
         if (*p == '/' || *p == '\\') {
@@ -49,11 +47,7 @@ StegoStatus payload_ext_from_path(const char *path, char ext[PAYLOAD_EXT_MAX]) {
     return STEGO_OK;
 }
 
-/* ------------------------------------------------------------------------ */
-/* Build                                                                    */
-/* ------------------------------------------------------------------------ */
-
-/* size(4, BE) || file || ext || '\0' */
+/* tamaño (4, big endian) || archivo || ext || '\0' */
 static StegoStatus build_plain(const uint8_t *file, size_t file_size,
                                const char *ext,
                                uint8_t **out, size_t *out_size) {
@@ -102,7 +96,7 @@ StegoStatus payload_build(const uint8_t *file, size_t file_size,
         return STEGO_OK;
     }
 
-    /* cipher_size(4, BE) || encrypt(plain) */
+    /* Tamaño del cifrado (4, BE) || cifrado */
     uint8_t *cipher = NULL;
     size_t cipher_size = 0;
     st = crypto_encrypt(opts->algo, opts->mode, opts->password,
@@ -132,17 +126,13 @@ StegoStatus payload_build(const uint8_t *file, size_t file_size,
     return STEGO_OK;
 }
 
-/* ------------------------------------------------------------------------ */
-/* Parse                                                                    */
-/* ------------------------------------------------------------------------ */
-
 #define CORRUPT_HINT "(¿método -steg, password, -a o -m incorrectos?)"
 
 static bool valid_ext_char(unsigned char c) {
     return c > 0x20 && c < 0x7F && c != '/' && c != '\\';
 }
 
-/* Parses size || file || ext || '\0' (trailing bytes are ignored). */
+/* lee tamaño || archivo || ext || '\0', lo que sobra al final se ignora */
 static StegoStatus parse_plain(const uint8_t *buf, size_t buf_size,
                                uint8_t **file, size_t *file_size,
                                char ext[PAYLOAD_EXT_MAX]) {
@@ -160,7 +150,7 @@ static StegoStatus parse_plain(const uint8_t *buf, size_t buf_size,
         return STEGO_ERR_CORRUPT;
     }
 
-    /* The extension must be '.' + chars + '\0' right after the file. */
+    /* La extensión va justo después del archivo: '.' + caracteres + '\0'. */
     const uint8_t *e = buf + SIZE_FIELD + size;
     size_t room = avail - size;
     size_t n = 0;
@@ -225,8 +215,7 @@ StegoStatus payload_parse(const uint8_t *stream, size_t stream_size,
                                     &plain, &plain_size);
     if (st != STEGO_OK) {
         if (st == STEGO_ERR_CRYPTO) {
-            /* Keep the detail given by crypto.c and make the cause explicit.
-             * Nothing is written to disk: main.c only writes on STEGO_OK. */
+            /* le agregamos la pista al mensaje que dejo crypto.c */
             char detail[256];
             snprintf(detail, sizeof detail, "%s", stego_error_message());
             stego_set_error("no se pudo descifrar los datos ocultos (%s) %s",

@@ -1,9 +1,4 @@
-/*
- * lsb.c - LSB1 and LSB4. See the contract in include/steg.h.
- *
- * Pending: the owner of this file implements these functions. Do not change
- * the signatures.
- */
+/* lsb.c - LSB1 y LSB4 */
 #include "steg.h"
 
 

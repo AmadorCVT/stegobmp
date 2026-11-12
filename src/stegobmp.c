@@ -3,10 +3,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-/* ------------------------------------------------------------------------ */
-/* Error message                                                            */
-/* ------------------------------------------------------------------------ */
-
 static char last_error[512] = "";
 
 void stego_set_error(const char *fmt, ...) {
@@ -20,10 +16,7 @@ const char *stego_error_message(void) {
     return last_error;
 }
 
-/* ------------------------------------------------------------------------ */
-/* Names (same order as the enums in stegobmp.h)                            */
-/* ------------------------------------------------------------------------ */
-
+/* mismo orden que los enums de stegobmp.h */
 static const char *const METHOD_NAMES[] = {"LSB1", "LSB4", "LSBI"};
 static const char *const ALGO_NAMES[]   = {"aes128", "aes192", "aes256", "3des"};
 static const char *const MODE_NAMES[]   = {"ecb", "cfb", "ofb", "cbc"};

@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-/* Every option understood by the program (used to detect a missing value). */
+/* opciones que conoce el programa, sirve para darse cuenta si falta un valor */
 static const char *const KNOWN_OPTIONS[] = {
     "-embed", "-extract", "-in", "-p", "-out", "-steg", "-a", "-m", "-pass"
 };
@@ -16,13 +16,13 @@ static bool is_known_option(const char *s) {
     return false;
 }
 
-/* UTF-8 en dash (E2 80 93) or em dash (E2 80 94), as pasted from the PDF. */
+/* guion largo en UTF-8 (E2 80 93 o E2 80 94), pasa si se copia del pdf */
 static bool starts_with_long_dash(const char *s) {
     return (unsigned char)s[0] == 0xE2 && (unsigned char)s[1] == 0x80 &&
            ((unsigned char)s[2] == 0x93 || (unsigned char)s[2] == 0x94);
 }
 
-/* Looks `value` up in `names` (case sensitive). Returns the index or -1. */
+/* Busca value en names. Devuelve el índice, o -1 si no está. */
 static int lookup(const char *const names[], size_t count, const char *value) {
     for (size_t i = 0; i < count; i++) {
         if (strcmp(value, names[i]) == 0) {
@@ -32,10 +32,7 @@ static int lookup(const char *const names[], size_t count, const char *value) {
     return -1;
 }
 
-/*
- * Reads the value that follows option argv[*i] and advances *i.
- * Returns NULL (with the error set) if there is none.
- */
+/* devuelve el valor que sigue a argv[*i] y avanza i, o NULL si no hay */
 static const char *take_value(int argc, char *argv[], int *i) {
     const char *opt = argv[*i];
     if (*i + 1 >= argc) {

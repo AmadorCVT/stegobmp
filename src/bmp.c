@@ -13,7 +13,7 @@ static uint32_t read_u32(const uint8_t *p) {
            ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
-/* Size of the whole file, or -1 on error. Leaves the position at the start. */
+/* Tamaño del archivo, o -1 si falla. Deja el puntero al principio. */
 static long file_length(FILE *f) {
     if (fseek(f, 0, SEEK_END) != 0) {
         return -1;
@@ -131,8 +131,8 @@ StegoStatus bmp_load(const char *path, Bmp *bmp) {
         goto fail;
     }
 
-    /* Header = everything before bfOffBits (the 54 bytes already read plus,
-     * if bfOffBits > 54, whatever sits between them and the body). */
+    /* el header es todo lo que esta antes de bfOffBits: los 54 bytes que ya
+     * leimos mas lo que haya entre eso y el cuerpo */
     memcpy(bmp->header, fixed, BMP_HEADER_SIZE);
     st = STEGO_ERR_IO;
     if (fread(bmp->header + BMP_HEADER_SIZE, 1, off_bits - BMP_HEADER_SIZE,
