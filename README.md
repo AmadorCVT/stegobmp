@@ -81,6 +81,32 @@ Con password (aquí `aes256` en modo `cbc`):
 
 El programa devuelve 0 si todo salió bien, 1 ante un error de ejecución (archivo inexistente, BMP inválido, no entra en el portador, datos corruptos o password incorrecta) y 2 ante un error en los parámetros. Si falla el descifrado o los datos recuperados no son coherentes, no se escribe ningún archivo.
 
+## Archivos de la cátedra (grupo 12)
+
+Los cuatro BMP entregados están en `grupo12/consignas/` y lo recuperado en `grupo12/recuperadas/`. Con el ejecutable compilado:
+
+```bash
+# kings.bmp: LSB1 sin cifrar -> kings.png (un buscaminas)
+./stegobmp -extract -p grupo12/consignas/kings.bmp -out grupo12/recuperadas/kings -steg LSB1
+
+# paris.bmp: LSBI sin cifrar -> paris.pdf ("La password es sorpresa")
+./stegobmp -extract -p grupo12/consignas/paris.bmp -out grupo12/recuperadas/paris -steg LSBI
+
+# lima.bmp: LSB4 + AES-128 en modo OFB -> lima.wmv
+./stegobmp -extract -p grupo12/consignas/lima.bmp -out grupo12/recuperadas/lima -steg LSB4 -a aes128 -m ofb -pass $'sorpresa\r'
+```
+
+La password de `lima.bmp` es `sorpresa` seguida de un retorno de carro (byte `0x0D`, el fin de línea de Windows). En bash se escribe `$'sorpresa\r'`. Con `-pass sorpresa` a secas el descifrado da datos corruptos.
+
+`loimposible.bmp` no usa LSB: tiene 49 bytes de texto agregados después de los píxeles, y `kings.png` trae un zip pegado al final con `sol12.txt`:
+
+```bash
+tail -c 49 grupo12/consignas/loimposible.bmp   # "al .png cambiar extension por .zip y descomprimir"
+unzip -p grupo12/recuperadas/kings.png sol12.txt
+```
+
+El procedimiento completo está en `docs/informe.md`.
+
 ## Módulos y contratos
 
 | Módulo | Archivos | Responsabilidad |
@@ -112,5 +138,8 @@ stegobmp/
 │   ├── bmp/        # Imágenes BMP de ejemplo
 │   ├── secrets/    # Archivos a ocultar de ejemplo
 │   └── catedra/    # Archivos de la cátedra
+├── grupo12/
+│   ├── consignas/  # Los cuatro BMP entregados por la cátedra
+│   └── recuperadas/ # Lo que se recuperó de cada uno
 └── docs/           # Documentación e informe
 ```
