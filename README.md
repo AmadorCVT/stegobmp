@@ -39,6 +39,19 @@ make clean
 make
 ```
 
+## Con Docker (cualquier sistema, incluida Mac)
+
+Si no tenés Ubuntu, `docker.sh` corre cualquier comando dentro de un contenedor Ubuntu 22.04 con `gcc` y OpenSSL, con el repo montado en `/work`. Solo hace falta tener Docker instalado y corriendo. La imagen (`stegobmp-dev`) se construye sola la primera vez.
+
+```bash
+./docker.sh make
+./docker.sh ./stegobmp -extract -p salida.bmp -out recuperado -steg LSB1
+./docker.sh            # shell interactiva dentro del contenedor
+./docker.sh --rebuild  # reconstruye la imagen si cambió el Dockerfile
+```
+
+El ejecutable generado es de Linux: se corre con `./docker.sh ./stegobmp ...`, no directamente en la Mac. Si alternás entre compilar en el contenedor y compilar nativo, hacé `make clean` antes.
+
 ## Ejecución
 
 ```bash
@@ -88,6 +101,8 @@ stegobmp/
 ├── README.md
 ├── .gitignore
 ├── Makefile
+├── Dockerfile      # Ubuntu 22.04 + gcc + OpenSSL
+├── docker.sh       # corre comandos dentro del contenedor
 ├── src/            # Código fuente (.c)
 │   ├── main.c  cli.c  bmp.c  payload.c
 │   ├── steg.c  lsb.c  lsbi.c  crypto.c
