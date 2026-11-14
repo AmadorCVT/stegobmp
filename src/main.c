@@ -85,7 +85,8 @@ static StegoStatus run_embed(const Options *opts) {
 
     st = payload_build(file, file_size, ext, opts, &stream, &stream_size);
     if (st == STEGO_OK) {
-        st = steg_embed(&bmp, opts->method, stream, stream_size);
+        st = steg_embed(opts->method, bmp.data, bmp.data_size,
+                        stream, stream_size);
     }
     if (st == STEGO_OK) {
         st = bmp_save(opts->out_path, &bmp);
@@ -109,7 +110,8 @@ static StegoStatus run_extract(const Options *opts) {
     if (st != STEGO_OK) {
         return st;
     }
-    st = payload_extract(&bmp, opts, &file, &file_size, ext);
+    st = payload_extract(bmp.data, bmp.data_size, opts,
+                         &file, &file_size, ext);
     if (st != STEGO_OK) {
         goto done;
     }

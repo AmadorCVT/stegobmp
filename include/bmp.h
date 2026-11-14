@@ -25,9 +25,6 @@ StegoStatus bmp_load(const char *path, Bmp *bmp);
 /* escribe header + data */
 StegoStatus bmp_save(const char *path, const Bmp *bmp);
 
-/* capacidad en bytes segun el metodo (ver steg.h) */
-size_t bmp_capacity_bytes(const Bmp *bmp, StegMethod method);
-
 /* libera todo, se puede llamar con un Bmp en cero */
 void bmp_free(Bmp *bmp);
 

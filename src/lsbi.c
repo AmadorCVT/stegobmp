@@ -2,7 +2,7 @@
 #include "steg.h"
 
 #define PATTERN_MASK 0x06
-#define PATTERNS 4
+
 
 /* grupo del byte: sus bits 1 y 2 (no cambian al tocar el LSB) */
 static inline uint8_t pattern(uint8_t byte) {
@@ -27,14 +27,14 @@ hay que agregar al principio cuales van a estar invertidos y cuales no
 */
 
 StegoStatus lsbi_embed(uint8_t *cover, const uint8_t *msg, size_t len) {
-    size_t count_modified[PATTERNS] = {0};
-    size_t count_unmodified[PATTERNS] = {0};
-    uint8_t inverted[PATTERNS];
+    size_t count_modified[LSBI_PATTERNS] = {0};
+    size_t count_unmodified[LSBI_PATTERNS] = {0};
+    uint8_t inverted[LSBI_PATTERNS];
 
     // recorremos y vamos contando cuales tenemos que modificar y cuales no
     // j recorre la imagen (salteando rojos), i recorre los bits del mensaje
     
-    for(size_t i = 0, j = PATTERNS; i < len * 8; i++, j++){
+    for(size_t i = 0, j = LSBI_PATTERNS; i < len * 8; i++, j++){
         j = skip_if_red(j);
         uint8_t bit = msg_bit(msg, i);
         uint8_t byte = cover[j];
@@ -49,13 +49,13 @@ StegoStatus lsbi_embed(uint8_t *cover, const uint8_t *msg, size_t len) {
     }
 
     // vemos entonces que grupos hay que reemplazar
-    for (int i = 0; i < PATTERNS; i++) {
+    for (int i = 0; i < LSBI_PATTERNS; i++) {
         inverted[i] = count_modified[i] > count_unmodified[i];
         cover[i] = set_lsb(cover[i], inverted[i]);
     }
 
     // ahora llenamos 
-    for(size_t i = 0, j = PATTERNS; i < len * 8; i++, j++) {
+    for(size_t i = 0, j = LSBI_PATTERNS; i < len * 8; i++, j++) {
         j = skip_if_red(j);
         uint8_t byte = cover[j];
         uint8_t bit = msg_bit(msg, i) ^ inverted[pattern(byte)];
@@ -70,25 +70,34 @@ StegoStatus lsbi_embed(uint8_t *cover, const uint8_t *msg, size_t len) {
     
 
 
-StegoStatus lsbi_extract(const uint8_t *stego, size_t len, uint8_t *out) {
-    // obtenemos cuales fueron invertidos
-    uint8_t inverted[PATTERNS];
-    for (int i = 0; i < PATTERNS; i++) {
-        inverted[i] = get_lsb(stego[i]);
+void lsbi_reader_init(StegReader *r) {
+    // obtenemos cuales fueron invertidos (si la imagen es muy chica no hay
+    // nada para leer, steg_remaining va a dar 0)
+    if (r->stego_len >= LSBI_PATTERNS) {
+        for (int i = 0; i < LSBI_PATTERNS; i++) {
+            r->inverted[i] = get_lsb(r->stego[i]);
+        }
     }
+    r->pos = LSBI_PATTERNS;
+}
 
-    // ahora vamos armando el mensaje en out (salteando rojos, igual que el embed)
-    // j va afuera porque sigue avanzando de un byte de out al siguiente
-    for (size_t i = 0, j = PATTERNS; i < len; i++) {
+StegoStatus lsbi_extract(StegReader *r, size_t len, uint8_t *out) {
+    const uint8_t *stego = r->stego;
+
+    // vamos armando el mensaje en out (salteando rojos, igual que el embed)
+    // j arranca donde termino la lectura anterior y sigue de un byte de out al siguiente
+    size_t j = r->pos;
+    for (size_t i = 0; i < len; i++) {
         uint8_t out_byte = 0;
         for(size_t b=0; b < 8; b++, j++){
             j = skip_if_red(j);
             uint8_t byte = stego[j];
-            uint8_t bit = get_lsb(byte) ^ inverted[pattern(byte)]; 
+            uint8_t bit = get_lsb(byte) ^ r->inverted[pattern(byte)];
             out_byte = push_bit(out_byte, bit);
         }
         out[i] = out_byte;
     }
+    r->pos = j;
 
     return STEGO_OK;
 }

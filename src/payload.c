@@ -132,6 +132,20 @@ static bool valid_ext_char(unsigned char c) {
     return c > 0x20 && c < 0x7F && c != '/' && c != '\\';
 }
 
+/* e[0..n) es la extension sin el '\0': '.' y al menos un caracter valido */
+static StegoStatus check_ext(const uint8_t *e, size_t n) {
+    bool ok = n >= 2 && e[0] == '.';
+    for (size_t i = 0; ok && i < n; i++) {
+        ok = valid_ext_char(e[i]);
+    }
+    if (!ok) {
+        stego_set_error("datos corruptos: la extensión recuperada no es "
+                        "válida %s", CORRUPT_HINT);
+        return STEGO_ERR_CORRUPT;
+    }
+    return STEGO_OK;
+}
+
 /* lee tamaño || archivo || ext || '\0', lo que sobra al final se ignora */
 static StegoStatus parse_plain(const uint8_t *buf, size_t buf_size,
                                uint8_t **file, size_t *file_size,
@@ -162,14 +176,9 @@ static StegoStatus parse_plain(const uint8_t *buf, size_t buf_size,
                         "%s", CORRUPT_HINT);
         return STEGO_ERR_CORRUPT;
     }
-    bool ok = n >= 2 && e[0] == '.';
-    for (size_t i = 0; ok && i < n; i++) {
-        ok = valid_ext_char(e[i]);
-    }
-    if (!ok) {
-        stego_set_error("datos corruptos: la extensión recuperada no es "
-                        "válida %s", CORRUPT_HINT);
-        return STEGO_ERR_CORRUPT;
+    StegoStatus st = check_ext(e, n);
+    if (st != STEGO_OK) {
+        return st;
     }
 
     uint8_t *out = malloc(size > 0 ? size : 1);
@@ -186,32 +195,15 @@ static StegoStatus parse_plain(const uint8_t *buf, size_t buf_size,
     return STEGO_OK;
 }
 
-StegoStatus payload_parse(const uint8_t *stream, size_t stream_size,
-                          const Options *opts,
-                          uint8_t **file, size_t *file_size,
-                          char ext[PAYLOAD_EXT_MAX]) {
-    if (!options_use_crypto(opts)) {
-        return parse_plain(stream, stream_size, file, file_size, ext);
-    }
-
-    if (stream_size < SIZE_FIELD) {
-        stego_set_error("datos corruptos: no hay lugar para el tamaño del "
-                        "cifrado %s", CORRUPT_HINT);
-        return STEGO_ERR_CORRUPT;
-    }
-    size_t cipher_size = get_u32_be(stream);
-    size_t avail = stream_size - SIZE_FIELD;
-    if (cipher_size > avail) {
-        stego_set_error("datos corruptos: el tamaño del cifrado (%zu bytes) "
-                        "es mayor que la capacidad disponible (%zu bytes) %s",
-                        cipher_size, avail, CORRUPT_HINT);
-        return STEGO_ERR_CORRUPT;
-    }
-
+/* descifra cipher y lee lo de adentro (tamaño || archivo || ext || '\0') */
+static StegoStatus decrypt_and_parse(const uint8_t *cipher, size_t cipher_size,
+                                     const Options *opts,
+                                     uint8_t **file, size_t *file_size,
+                                     char ext[PAYLOAD_EXT_MAX]) {
     uint8_t *plain = NULL;
     size_t plain_size = 0;
     StegoStatus st = crypto_decrypt(opts->algo, opts->mode, opts->password,
-                                    stream + SIZE_FIELD, cipher_size,
+                                    cipher, cipher_size,
                                     &plain, &plain_size);
     if (st != STEGO_OK) {
         if (st == STEGO_ERR_CRYPTO) {
@@ -228,50 +220,75 @@ StegoStatus payload_parse(const uint8_t *stream, size_t stream_size,
     return st;
 }
 
-StegoStatus payload_extract(const Bmp *bmp, const Options *opts,
+/* sin cifrar, la extension va despues del archivo: se lee de a un byte hasta el '\0' */
+static StegoStatus read_ext(StegReader *r, char ext[PAYLOAD_EXT_MAX]) {
+    uint8_t e[PAYLOAD_EXT_MAX];
+    for (size_t n = 0; n < PAYLOAD_EXT_MAX && steg_remaining(r) > 0; n++) {
+        StegoStatus st = steg_read(r, 1, &e[n]);
+        if (st != STEGO_OK) {
+            return st;
+        }
+        if (e[n] == '\0') {
+            if ((st = check_ext(e, n)) != STEGO_OK) {
+                return st;
+            }
+            memcpy(ext, e, n + 1);
+            return STEGO_OK;
+        }
+    }
+    stego_set_error("datos corruptos: la extensión no termina en '\\0' %s",
+                    CORRUPT_HINT);
+    return STEGO_ERR_CORRUPT;
+}
+
+StegoStatus payload_extract(const uint8_t *stego, size_t stego_len,
+                            const Options *opts,
                             uint8_t **file, size_t *file_size,
                             char ext[PAYLOAD_EXT_MAX]) {
-    size_t capacity = steg_capacity(opts->method, bmp);
-    if (capacity < SIZE_FIELD) {
+    StegReader r;
+    steg_reader_init(&r, opts->method, stego, stego_len);
+    if (steg_remaining(&r) < SIZE_FIELD) {
         stego_set_error("el portador es demasiado chico para contener datos "
                         "ocultos con %s (capacidad: %zu bytes)",
-                        stego_method_name(opts->method), capacity);
+                        stego_method_name(opts->method), steg_remaining(&r));
         return STEGO_ERR_CORRUPT;
     }
 
-    /* primera pasada: solo el tamaño, para saber cuanto hay que leer */
+    /* primero el tamaño, para saber cuanto hay que leer y reservar */
     uint8_t header[SIZE_FIELD];
-    StegoStatus st = steg_extract(bmp, opts->method, SIZE_FIELD, header);
+    StegoStatus st = steg_read(&r, SIZE_FIELD, header);
     if (st != STEGO_OK) {
         return st;
     }
     size_t size = get_u32_be(header);
-    size_t avail = capacity - SIZE_FIELD;
-    if (size > avail) {
+    if (size > steg_remaining(&r)) {
         stego_set_error("datos corruptos: el tamaño declarado (%zu bytes) es "
                         "mayor que la capacidad disponible (%zu bytes) %s",
-                        size, avail, CORRUPT_HINT);
+                        size, steg_remaining(&r), CORRUPT_HINT);
         return STEGO_ERR_CORRUPT;
     }
 
-    /* cifrado: el tamaño ya es todo lo que sigue. sin cifrar: despues del
-     * archivo viene la extension, que tiene a lo sumo PAYLOAD_EXT_MAX bytes */
-    size_t need = SIZE_FIELD + size;
-    if (!options_use_crypto(opts)) {
-        need += (avail - size < PAYLOAD_EXT_MAX) ? avail - size
-                                                 : PAYLOAD_EXT_MAX;
-    }
-
-    /* segunda pasada: vuelve a leer el tamaño (son pocos bytes) y el resto */
-    uint8_t *stream = malloc(need);
-    if (stream == NULL) {
+    /* despues el archivo (o el cifrado), sigue donde quedo el lector */
+    uint8_t *buf = malloc(size > 0 ? size : 1);
+    if (buf == NULL) {
         stego_set_error("sin memoria para leer los datos ocultos");
         return STEGO_ERR_MEMORY;
     }
-    st = steg_extract(bmp, opts->method, need, stream);
-    if (st == STEGO_OK) {
-        st = payload_parse(stream, need, opts, file, file_size, ext);
+    st = steg_read(&r, size, buf);
+
+    if (st == STEGO_OK && options_use_crypto(opts)) {
+        st = decrypt_and_parse(buf, size, opts, file, file_size, ext);
+        free(buf);
+        return st;
     }
-    free(stream);
-    return st;
+    if (st == STEGO_OK) {
+        st = read_ext(&r, ext);
+    }
+    if (st != STEGO_OK) {
+        free(buf);
+        return st;
+    }
+    *file = buf;
+    *file_size = size;
+    return STEGO_OK;
 }

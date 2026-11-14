@@ -19,12 +19,13 @@ StegoStatus lsb1_embed(uint8_t *cover, const uint8_t *msg, size_t len) {
     return STEGO_OK;
 }
 
-StegoStatus lsb1_extract(const uint8_t *stego, size_t len, uint8_t *out) {
+StegoStatus lsb1_extract(StegReader *r, size_t len, uint8_t *out) {
+    const uint8_t *stego = r->stego;
     for(size_t i = 0; i < len; i++){
         uint8_t byte = 0;
         for(size_t b=0; b < 8; b++){
             //junto el LSB de cada uno de los 8 bytes de la imagen que forman el byte de out
-            byte = push_bit(byte, get_lsb(stego[i * 8 + b]));
+            byte = push_bit(byte, get_lsb(stego[r->pos++]));
         }
         out[i] = byte;
     }
@@ -40,10 +41,11 @@ StegoStatus lsb4_embed(uint8_t *cover, const uint8_t *msg, size_t len) {
     return STEGO_OK;
 }
 
-StegoStatus lsb4_extract(const uint8_t *stego, size_t len, uint8_t *out) {
-    for(size_t i = 0; i < len; i++){
+StegoStatus lsb4_extract(StegReader *r, size_t len, uint8_t *out) {
+    const uint8_t *stego = r->stego;
+    for(size_t i = 0; i < len; i++, r->pos += 2){
         //junto los 4 bits bajos de 2 bytes consecutivos de la imagen: el primero es el nibble alto
-        out[i] = (uint8_t)((get_low_nibble(stego[2 * i]) << 4) | get_low_nibble(stego[2 * i + 1]));
+        out[i] = (uint8_t)((get_low_nibble(stego[r->pos]) << 4) | get_low_nibble(stego[r->pos + 1]));
     }
     return STEGO_OK;
 }

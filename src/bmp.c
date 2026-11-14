@@ -25,26 +25,6 @@ static long file_length(FILE *f) {
     return len;
 }
 
-size_t bmp_capacity_bytes(const Bmp *bmp, StegMethod method) {
-    switch (method) {
-    case STEG_LSB1:
-        return bmp->data_size / 8;
-    case STEG_LSB4:
-        return bmp->data_size / 2;
-    case STEG_LSBI: {
-        /* 4 bytes de patrones y despues solo azul y verde: de los indices
-         * j < n hay n/3 rojos (j % 3 == 2), y en [0, 4) hay uno (el 2) */
-        size_t n = bmp->data_size;
-        if (n <= 4) {
-            return 0;
-        }
-        size_t usable = (n - 4) - (n / 3 - 1);
-        return usable / 8;
-    }
-    }
-    return 0;
-}
-
 void bmp_free(Bmp *bmp) {
     free(bmp->header);
     free(bmp->data);
