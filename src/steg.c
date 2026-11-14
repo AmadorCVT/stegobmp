@@ -1,4 +1,4 @@
-#include "steg.h"
+#include "steg_impl.h"
 
 #include <string.h>
 

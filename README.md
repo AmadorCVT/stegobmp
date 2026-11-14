@@ -89,7 +89,7 @@ El programa devuelve 0 si todo salió bien, 1 ante un error de ejecución (archi
 | CLI | `include/cli.h`, `src/cli.c`, `src/main.c` | Parseo de argumentos y flujo `-embed` / `-extract` |
 | BMP | `include/bmp.h`, `src/bmp.c` | `bmp_load`, `bmp_save`, `bmp_free` |
 | Payload | `include/payload.h`, `src/payload.c` | Formato `tamaño \|\| archivo \|\| extensión` y cifrado |
-| Esteganografía | `include/steg.h`, `src/steg.c`, `src/lsb.c`, `src/lsbi.c` | `steg_embed` / `steg_extract` y `lsb1_*`, `lsb4_*`, `lsbi_*` |
+| Esteganografía | `include/steg.h`, `include/steg_impl.h`, `src/steg.c`, `src/lsb.c`, `src/lsbi.c` | `steg_embed` / `StegReader` + `steg_read` y `lsb1_*`, `lsb4_*`, `lsbi_*` |
 | Cifrado | `include/crypto.h`, `src/crypto.c` | `crypto_encrypt` / `crypto_decrypt` (PBKDF2 + OpenSSL) |
 
 Cambiar una firma de los headers requiere acuerdo del grupo.

@@ -1,5 +1,5 @@
 /* lsb.c - LSB1 y LSB4 */
-#include "steg.h"
+#include "steg_impl.h"
 
 /* 4 bits bajos de byte */
 static inline uint8_t get_low_nibble(uint8_t byte) {

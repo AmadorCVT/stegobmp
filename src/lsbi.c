@@ -1,5 +1,5 @@
 /* lsbi.c - LSB Improved (Majeed y Sulaiman) */
-#include "steg.h"
+#include "steg_impl.h"
 
 #define PATTERN_MASK 0x06
 
