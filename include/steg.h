@@ -21,6 +21,23 @@ StegoStatus steg_embed(Bmp *bmp, StegMethod method,
 StegoStatus steg_extract(const Bmp *bmp, StegMethod method,
                          size_t len, uint8_t *out);
 
+/* ayudas para trabajar bit a bit, las usan lsb.c y lsbi.c */
+
+/* bit i del mensaje, contando desde el mas significativo de data[0] */
+static inline uint8_t msg_bit(const uint8_t *data, size_t i) {
+    return (uint8_t)((data[i / 8] >> (7 - i % 8)) & 1);
+}
+
+/* devuelve byte con su LSB reemplazado por bit (0 o 1) */
+static inline uint8_t set_lsb(uint8_t byte, uint8_t bit) {
+    return (uint8_t)((byte & 0xFE) | bit);
+}
+
+/* agrega bit a la derecha de acc: para ir armando bytes al extraer */
+static inline uint8_t push_bit(uint8_t acc, uint8_t bit) {
+    return (uint8_t)((acc << 1) | bit);
+}
+
 /* steg.c ya chequea que len <= capacidad antes de llamar a estas */
 
 /* lsb.c - LSB1 usa 1 bit por byte de la imagen, LSB4 usa 4 (nibble alto primero) */

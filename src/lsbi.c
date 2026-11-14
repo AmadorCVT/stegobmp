@@ -5,6 +5,11 @@
 #define LAST_BIT_MASK 0x01
 #define GROUPS 4
 
+/* grupo del byte: sus bits 1 y 2 (no cambian al tocar el LSB) */
+static inline uint8_t pattern(uint8_t byte) {
+    return (uint8_t)((byte & GROUP_MASK) >> 1);
+}
+
 /*
 La idea es hacer un lsb, teniendo la cover image y la stego image
 agrupar los bytes segun su 2do y 3er bit menos significativos (4 grupos: '00', '01', '10', '11')
@@ -21,30 +26,27 @@ StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {
     // recorremos y vamos contando cuales tenemos que modificar y cuales no
     for(size_t i = 0; i < len * 8; i++){
 
-        uint8_t bit = (data[i / 8] >> (7 - i % 8)) & 1;
+        uint8_t bit = msg_bit(data, i);
+        uint8_t byte = bmp->data[i + GROUPS];
 
-        uint8_t group = (bmp->data[i + GROUPS] & GROUP_MASK) >> 1;
-
-        if (bit == (bmp->data[i + GROUPS] & LAST_BIT_MASK)) {
-            count_unmodified[group]++;
+        if (bit == (byte & LAST_BIT_MASK)) {
+            count_unmodified[pattern(byte)]++;
         } else {
-            count_modified[group]++;
+            count_modified[pattern(byte)]++;
         }
     }
 
     // vemos entonces que grupos hay que reemplazar
     for (int i = 0; i < GROUPS; i++) {
         inverted[i] = count_modified[i] > count_unmodified[i];
-        uint8_t bit = inverted[i];
-        bmp->data[i] = (bmp->data[i] & 0xFE) | bit;
+        bmp->data[i] = set_lsb(bmp->data[i], inverted[i]);
     }
 
     // ahora llenamos 
     for(size_t i = 0; i < len * 8; i++) {
-        uint8_t bit = (data[i / 8] >> (7 - i % 8)) & 0x01;
-        uint8_t group = (bmp->data[i + GROUPS] & GROUP_MASK) >> 1;
-        bit ^= inverted[group];
-        bmp->data[i + GROUPS] = (bmp->data[i + GROUPS] & 0xFE) | bit;
+        uint8_t byte = bmp->data[i + GROUPS];
+        uint8_t bit = msg_bit(data, i) ^ inverted[pattern(byte)];
+        bmp->data[i + GROUPS] = set_lsb(byte, bit);
     }
 
 
@@ -58,4 +60,8 @@ StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {
 
 
 StegoStatus lsbi_extract(const Bmp *bmp, size_t len, uint8_t *out) {
+
+
+
+    
 }
