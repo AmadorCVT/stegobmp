@@ -25,3 +25,6 @@ Thumbs.db
 *.tmp
 *.log
 tmp/
+
+# out files for testing
+out/*
