@@ -239,14 +239,38 @@ StegoStatus payload_extract(const Bmp *bmp, const Options *opts,
         return STEGO_ERR_CORRUPT;
     }
 
-    uint8_t *stream = malloc(capacity);
+    /* primera pasada: solo el tamaño, para saber cuanto hay que leer */
+    uint8_t header[SIZE_FIELD];
+    StegoStatus st = steg_extract(bmp, opts->method, SIZE_FIELD, header);
+    if (st != STEGO_OK) {
+        return st;
+    }
+    size_t size = get_u32_be(header);
+    size_t avail = capacity - SIZE_FIELD;
+    if (size > avail) {
+        stego_set_error("datos corruptos: el tamaño declarado (%zu bytes) es "
+                        "mayor que la capacidad disponible (%zu bytes) %s",
+                        size, avail, CORRUPT_HINT);
+        return STEGO_ERR_CORRUPT;
+    }
+
+    /* cifrado: el tamaño ya es todo lo que sigue. sin cifrar: despues del
+     * archivo viene la extension, que tiene a lo sumo PAYLOAD_EXT_MAX bytes */
+    size_t need = SIZE_FIELD + size;
+    if (!options_use_crypto(opts)) {
+        need += (avail - size < PAYLOAD_EXT_MAX) ? avail - size
+                                                 : PAYLOAD_EXT_MAX;
+    }
+
+    /* segunda pasada: vuelve a leer el tamaño (son pocos bytes) y el resto */
+    uint8_t *stream = malloc(need);
     if (stream == NULL) {
         stego_set_error("sin memoria para leer los datos ocultos");
         return STEGO_ERR_MEMORY;
     }
-    StegoStatus st = steg_extract(bmp, opts->method, capacity, stream);
+    st = steg_extract(bmp, opts->method, need, stream);
     if (st == STEGO_OK) {
-        st = payload_parse(stream, capacity, opts, file, file_size, ext);
+        st = payload_parse(stream, need, opts, file, file_size, ext);
     }
     free(stream);
     return st;

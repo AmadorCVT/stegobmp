@@ -31,7 +31,7 @@ StegoStatus payload_parse(const uint8_t *stream, size_t stream_size,
                           uint8_t **file, size_t *file_size,
                           char ext[PAYLOAD_EXT_MAX]);
 
-/* lee todo lo que entra en el portador y llama a payload_parse() */
+/* lee el tamaño, despues solo lo que hace falta y llama a payload_parse() */
 StegoStatus payload_extract(const Bmp *bmp, const Options *opts,
                             uint8_t **file, size_t *file_size,
                             char ext[PAYLOAD_EXT_MAX]);
