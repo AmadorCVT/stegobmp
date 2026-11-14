@@ -43,18 +43,22 @@ static inline uint8_t push_bit(uint8_t acc, uint8_t bit) {
     return (uint8_t)((acc << 1) | bit);
 }
 
-/* steg.c ya chequea que len <= capacidad antes de llamar a estas */
+/*
+ * Estas no saben nada del bmp: reciben los bytes de la imagen (como el paper,
+ * cover C y stego S). El embed modifica cover in place, que queda como stego.
+ * steg.c ya chequea que len <= capacidad antes de llamar a estas.
+ */
 
 /* lsb.c - LSB1 usa 1 bit por byte de la imagen, LSB4 usa 4 (nibble alto primero) */
-StegoStatus lsb1_embed(Bmp *bmp, const uint8_t *data, size_t len);
-StegoStatus lsb1_extract(const Bmp *bmp, size_t len, uint8_t *out);
-StegoStatus lsb4_embed(Bmp *bmp, const uint8_t *data, size_t len);
-StegoStatus lsb4_extract(const Bmp *bmp, size_t len, uint8_t *out);
+StegoStatus lsb1_embed(uint8_t *cover, const uint8_t *msg, size_t len);
+StegoStatus lsb1_extract(const uint8_t *stego, size_t len, uint8_t *out);
+StegoStatus lsb4_embed(uint8_t *cover, const uint8_t *msg, size_t len);
+StegoStatus lsb4_extract(const uint8_t *stego, size_t len, uint8_t *out);
 
 /* lsbi.c - los primeros 4 bytes guardan los bits del patron (con LSB1),
  * despues va 1 bit por byte azul o verde (saltea los rojos) invirtiendo
  * segun el patron */
-StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len);
-StegoStatus lsbi_extract(const Bmp *bmp, size_t len, uint8_t *out);
+StegoStatus lsbi_embed(uint8_t *cover, const uint8_t *msg, size_t len);
+StegoStatus lsbi_extract(const uint8_t *stego, size_t len, uint8_t *out);
 
 #endif /* STEG_H */

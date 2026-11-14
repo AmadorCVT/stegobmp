@@ -17,9 +17,9 @@ StegoStatus steg_embed(Bmp *bmp, StegMethod method,
     }
 
     switch (method) {
-    case STEG_LSB1: return lsb1_embed(bmp, data, len);
-    case STEG_LSB4: return lsb4_embed(bmp, data, len);
-    case STEG_LSBI: return lsbi_embed(bmp, data, len);
+    case STEG_LSB1: return lsb1_embed(bmp->data, data, len);
+    case STEG_LSB4: return lsb4_embed(bmp->data, data, len);
+    case STEG_LSBI: return lsbi_embed(bmp->data, data, len);
     }
     stego_set_error("método de esteganografiado desconocido");
     return STEGO_ERR_ARGS;
@@ -36,9 +36,9 @@ StegoStatus steg_extract(const Bmp *bmp, StegMethod method,
     }
 
     switch (method) {
-    case STEG_LSB1: return lsb1_extract(bmp, len, out);
-    case STEG_LSB4: return lsb4_extract(bmp, len, out);
-    case STEG_LSBI: return lsbi_extract(bmp, len, out);
+    case STEG_LSB1: return lsb1_extract(bmp->data, len, out);
+    case STEG_LSB4: return lsb4_extract(bmp->data, len, out);
+    case STEG_LSBI: return lsbi_extract(bmp->data, len, out);
     }
     stego_set_error("método de esteganografiado desconocido");
     return STEGO_ERR_ARGS;

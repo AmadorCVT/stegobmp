@@ -26,7 +26,7 @@ fijarse por cada byte si el lsb cambio, si en un determinado grupo cambio mas de
 hay que agregar al principio cuales van a estar invertidos y cuales no
 */
 
-StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {
+StegoStatus lsbi_embed(uint8_t *cover, const uint8_t *msg, size_t len) {
     size_t count_modified[PATTERNS] = {0};
     size_t count_unmodified[PATTERNS] = {0};
     uint8_t inverted[PATTERNS];
@@ -36,8 +36,8 @@ StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {
     
     for(size_t i = 0, j = PATTERNS; i < len * 8; i++, j++){
         j = skip_if_red(j);
-        uint8_t bit = msg_bit(data, i);
-        uint8_t byte = bmp->data[j];
+        uint8_t bit = msg_bit(msg, i);
+        uint8_t byte = cover[j];
 
         if (bit == get_lsb(byte)) {
             count_unmodified[pattern(byte)]++;
@@ -51,15 +51,15 @@ StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {
     // vemos entonces que grupos hay que reemplazar
     for (int i = 0; i < PATTERNS; i++) {
         inverted[i] = count_modified[i] > count_unmodified[i];
-        bmp->data[i] = set_lsb(bmp->data[i], inverted[i]);
+        cover[i] = set_lsb(cover[i], inverted[i]);
     }
 
     // ahora llenamos 
     for(size_t i = 0, j = PATTERNS; i < len * 8; i++, j++) {
         j = skip_if_red(j);
-        uint8_t byte = bmp->data[j];
-        uint8_t bit = msg_bit(data, i) ^ inverted[pattern(byte)];
-        bmp->data[j] = set_lsb(byte, bit);
+        uint8_t byte = cover[j];
+        uint8_t bit = msg_bit(msg, i) ^ inverted[pattern(byte)];
+        cover[j] = set_lsb(byte, bit);
     }
 
     return STEGO_OK;
@@ -70,22 +70,20 @@ StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len) {
     
 
 
-StegoStatus lsbi_extract(const Bmp *bmp, size_t len, uint8_t *out) {
+StegoStatus lsbi_extract(const uint8_t *stego, size_t len, uint8_t *out) {
     // obtenemos cuales fueron invertidos
     uint8_t inverted[PATTERNS];
     for (int i = 0; i < PATTERNS; i++) {
-        inverted[i] = get_lsb(bmp->data[i]);
+        inverted[i] = get_lsb(stego[i]);
     }
 
     // ahora vamos armando el mensaje en out (salteando rojos, igual que el embed)
     // j va afuera porque sigue avanzando de un byte de out al siguiente
-    size_t j = PATTERNS;
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0, j = PATTERNS; i < len; i++) {
         uint8_t out_byte = 0;
         for(size_t b=0; b < 8; b++, j++){
             j = skip_if_red(j);
-            //junto el LSB de cada uno de los 8 bytes de la imagen que forman el byte de out
-            uint8_t byte = bmp->data[j];
+            uint8_t byte = stego[j];
             uint8_t bit = get_lsb(byte) ^ inverted[pattern(byte)]; 
             out_byte = push_bit(out_byte, bit);
         }
