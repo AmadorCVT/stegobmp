@@ -1,6 +1,15 @@
 /* lsb.c - LSB1 y LSB4 */
 #include "steg.h"
 
+/* 4 bits bajos de byte */
+static inline uint8_t get_low_nibble(uint8_t byte) {
+    return (uint8_t)(byte & 0x0F);
+}
+
+/* devuelve byte con sus 4 bits bajos reemplazados por nibble (0..15) */
+static inline uint8_t set_low_nibble(uint8_t byte, uint8_t nibble) {
+    return (uint8_t)((byte & 0xF0) | nibble);
+}
 
 StegoStatus lsb1_embed(Bmp *bmp, const uint8_t *data, size_t len) {
     for(size_t i = 0; i < len * 8; i++){
@@ -25,8 +34,8 @@ StegoStatus lsb1_extract(const Bmp *bmp, size_t len, uint8_t *out) {
 StegoStatus lsb4_embed(Bmp *bmp, const uint8_t *data, size_t len) {
     for(size_t i = 0; i < len; i++){
         //cada byte del secreto ocupa 2 bytes de la imagen: primero el nibble alto, despues el bajo
-        bmp->data[2 * i]     = (uint8_t) ((bmp->data[2 * i]     & 0xF0) | (data[i] >> 4));
-        bmp->data[2 * i + 1] = (uint8_t) ((bmp->data[2 * i + 1] & 0xF0) | (data[i] & 0x0F));
+        bmp->data[2 * i]     = set_low_nibble(bmp->data[2 * i],     data[i] >> 4);
+        bmp->data[2 * i + 1] = set_low_nibble(bmp->data[2 * i + 1], get_low_nibble(data[i]));
     }
     return STEGO_OK;
 }
@@ -34,7 +43,7 @@ StegoStatus lsb4_embed(Bmp *bmp, const uint8_t *data, size_t len) {
 StegoStatus lsb4_extract(const Bmp *bmp, size_t len, uint8_t *out) {
     for(size_t i = 0; i < len; i++){
         //junto los 4 bits bajos de 2 bytes consecutivos de la imagen: el primero es el nibble alto
-        out[i] = (uint8_t) (((bmp->data[2 * i] & 0x0F) << 4) | (bmp->data[2 * i + 1] & 0x0F));
+        out[i] = (uint8_t)((get_low_nibble(bmp->data[2 * i]) << 4) | get_low_nibble(bmp->data[2 * i + 1]));
     }
     return STEGO_OK;
 }
