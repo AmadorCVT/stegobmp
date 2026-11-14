@@ -10,7 +10,7 @@
 #include "stegobmp.h"
 
 /* Cuántos bytes entran: LSB1 data_size/8, LSB4 data_size/2,
- * LSBI (data_size-4)/8. */
+ * LSBI (bytes azules y verdes despues de los 4 primeros)/8. */
 size_t steg_capacity(StegMethod method, const Bmp *bmp);
 
 /* oculta data en bmp->data. STEGO_ERR_CAPACITY si no entra */
@@ -26,6 +26,11 @@ StegoStatus steg_extract(const Bmp *bmp, StegMethod method,
 /* bit i del mensaje, contando desde el mas significativo de data[0] */
 static inline uint8_t msg_bit(const uint8_t *data, size_t i) {
     return (uint8_t)((data[i / 8] >> (7 - i % 8)) & 1);
+}
+
+/* LSB de byte (0 o 1) */
+static inline uint8_t get_lsb(uint8_t byte) {
+    return (uint8_t)(byte & 0x01);
 }
 
 /* devuelve byte con su LSB reemplazado por bit (0 o 1) */
@@ -47,7 +52,8 @@ StegoStatus lsb4_embed(Bmp *bmp, const uint8_t *data, size_t len);
 StegoStatus lsb4_extract(const Bmp *bmp, size_t len, uint8_t *out);
 
 /* lsbi.c - los primeros 4 bytes guardan los bits del patron (con LSB1),
- * despues va 1 bit por byte invirtiendo segun el patron */
+ * despues va 1 bit por byte azul o verde (saltea los rojos) invirtiendo
+ * segun el patron */
 StegoStatus lsbi_embed(Bmp *bmp, const uint8_t *data, size_t len);
 StegoStatus lsbi_extract(const Bmp *bmp, size_t len, uint8_t *out);
 

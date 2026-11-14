@@ -15,7 +15,7 @@ StegoStatus lsb1_extract(const Bmp *bmp, size_t len, uint8_t *out) {
         uint8_t byte = 0;
         for(size_t b=0; b < 8; b++){
             //junto el LSB de cada uno de los 8 bytes de la imagen que forman el byte de out
-            byte = push_bit(byte, bmp->data[i * 8 + b] & 1);
+            byte = push_bit(byte, get_lsb(bmp->data[i * 8 + b]));
         }
         out[i] = byte;
     }
