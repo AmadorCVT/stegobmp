@@ -92,7 +92,7 @@ probamos con
 
 pero da
 
-```sh
+```
 datos corruptos: el tamaño declarado (4236261204 bytes) es mayor que los datos disponibles (908061 bytes) (¿método -steg, password, -a o -m incorrectos?)
 ```
 
