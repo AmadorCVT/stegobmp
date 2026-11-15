@@ -100,7 +100,7 @@ Asi que empezamos a probar diferentes variantes de mayusculas y minusculas de la
 
 Luego empezamos a probar con `\n`, `\r\n`, y finalmente `\r` al final, resultando en que la password era `sorpresa\r`
 
-creemos que quizas la password fue levantada de algun archivo que usaba `\r\n` como salto de linea con algun script que parseaba con `\n` y quedó el `\r` como parte de la contraseña.
+Creemos que quizas la password fue levantada de algun archivo que usaba `\r\n` como salto de linea con algun script que parseaba con `\n` y quedó el `\r` como parte de la contraseña.
 
 Finalmente obtemenos el mensaje del archivo `lima.bmp`
 
