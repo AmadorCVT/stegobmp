@@ -1,10 +1,10 @@
 # Solucion
 
 En la consigna nos mandaron los siguientes archivos:
-- kings.bmp
-- paris.bmp
-- loimposible.bmp
-- lima.bmp
+- `kings.bmp`
+- `paris.bmp`
+- `loimposible.bmp`
+- `lima.bmp`
 
 Sabiendo que ocultaban mensajes uno con lsb1, otro con lsb4, otro con lsbi y uno mas de otra forma
 
