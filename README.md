@@ -2,8 +2,6 @@
 
 Herramienta de línea de comandos en C para ocultar y recuperar archivos dentro de imágenes BMP mediante esteganografía. Trabajo Práctico de Criptografía y Seguridad.
 
-> Estado actual: etapa 3 (integración). La línea de comandos, la lectura/escritura de BMP, el formato del payload (`tamaño || archivo || extensión`), el armado del flujo cifrado (`tamaño del cifrado || datos cifrados`) y el cálculo de capacidad están hechos. Las funciones de `lsb.c`, `lsbi.c` y `crypto.c` están declaradas con el cuerpo vacío y las tienen que implementar sus responsables. El archivo a ocultar debe tener extensión.
-
 ## Requisitos
 
 - Ubuntu 22.04 (o WSL2 con Ubuntu 22.04)
