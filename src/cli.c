@@ -190,12 +190,13 @@ StegoStatus cli_parse(int argc, char *argv[], Options *opts) {
         return STEGO_ERR_ARGS;
     }
 
+    /* la consigna: sin password no se cifra, "sólo se esteganografía" */
     if (!seen_pass && (seen_a || seen_m)) {
-        stego_set_error("%s%s%s requiere%s -pass: no se puede cifrar sin "
-                        "password",
-                        seen_a ? "-a" : "", seen_a && seen_m ? " y " : "",
-                        seen_m ? "-m" : "", seen_a && seen_m ? "n" : "");
-        return STEGO_ERR_ARGS;
+        fprintf(stderr, "stegobmp: aviso: sin -pass no se %s: se ignora%s "
+                "%s%s%s\n", opts->op == OP_EMBED ? "cifra" : "descifra",
+                seen_a && seen_m ? "n" : "",
+                seen_a ? "-a" : "", seen_a && seen_m ? " y " : "",
+                seen_m ? "-m" : "");
     }
 
     return STEGO_OK;
@@ -215,7 +216,7 @@ void cli_print_usage(FILE *out) {
         "           [-m <ecb | cfb | ofb | cbc>] [-pass password]\n"
         "\n"
         "Notas:\n"
-        "  - Sin -pass no se cifra. -a y -m requieren -pass.\n"
+        "  - Sin -pass no se cifra (si se indican -a o -m, se ignoran).\n"
         "  - Con -pass y sin -a se usa aes128; sin -m se usa cbc.\n"
         "  - Los valores distinguen mayúsculas y minúsculas.\n"
         "  - En -extract, -out es el nombre sin extensión: se le agrega la\n"

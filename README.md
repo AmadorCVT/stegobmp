@@ -60,7 +60,7 @@ El ejecutable generado es de Linux: se corre con `./docker.sh ./stegobmp ...`, n
 ./stegobmp -extract -p salida.bmp -out mensaje -steg LSB1 [-a ...] [-m ...] [-pass password]
 ```
 
-Los parámetros pueden ir en cualquier orden, distinguen mayúsculas y minúsculas y usan el guion común `-`. Sin `-pass` no se cifra; con `-pass` y sin `-a`/`-m` se usa `aes128` y `cbc`.
+Los parámetros pueden ir en cualquier orden, distinguen mayúsculas y minúsculas y usan el guion común `-`. Sin `-pass` no se cifra (si se indican `-a` o `-m`, se ignoran con un aviso, como pide la consigna); con `-pass` y sin `-a`/`-m` se usa `aes128` y `cbc`.
 
 ### Ejemplos
 
@@ -83,17 +83,17 @@ El programa devuelve 0 si todo salió bien, 1 ante un error de ejecución (archi
 
 ## Archivos de la cátedra (grupo 12)
 
-Los cuatro BMP entregados están en `grupo12/consignas/` y lo recuperado en `grupo12/recuperadas/`. Con el ejecutable compilado:
+Los cuatro BMP entregados están en `grupo12/` y lo recuperado en `analisis/`. Con el ejecutable compilado:
 
 ```bash
 # kings.bmp: LSB1 sin cifrar -> kings.png (un buscaminas)
-./stegobmp -extract -p grupo12/consignas/kings.bmp -out grupo12/recuperadas/kings -steg LSB1
+./stegobmp -extract -p grupo12/kings.bmp -out analisis/kings -steg LSB1
 
 # paris.bmp: LSBI sin cifrar -> paris.pdf ("La password es sorpresa")
-./stegobmp -extract -p grupo12/consignas/paris.bmp -out grupo12/recuperadas/paris -steg LSBI
+./stegobmp -extract -p grupo12/paris.bmp -out analisis/paris -steg LSBI
 
 # lima.bmp: LSB4 + AES-128 en modo OFB -> lima.wmv
-./stegobmp -extract -p grupo12/consignas/lima.bmp -out grupo12/recuperadas/lima -steg LSB4 -a aes128 -m ofb -pass $'sorpresa\r'
+./stegobmp -extract -p grupo12/lima.bmp -out analisis/lima -steg LSB4 -a aes128 -m ofb -pass $'sorpresa\r'
 ```
 
 La password de `lima.bmp` es `sorpresa` seguida de un retorno de carro (byte `0x0D`, el fin de línea de Windows). En bash se escribe `$'sorpresa\r'`. Con `-pass sorpresa` a secas el descifrado da datos corruptos.
@@ -101,11 +101,11 @@ La password de `lima.bmp` es `sorpresa` seguida de un retorno de carro (byte `0x
 `loimposible.bmp` no usa LSB: tiene 49 bytes de texto agregados después de los píxeles, y `kings.png` trae un zip pegado al final con `sol12.txt`:
 
 ```bash
-tail -c 49 grupo12/consignas/loimposible.bmp   # "al .png cambiar extension por .zip y descomprimir"
-unzip -p grupo12/recuperadas/kings.png sol12.txt
+tail -c 49 grupo12/loimposible.bmp   # "al .png cambiar extension por .zip y descomprimir"
+unzip -p analisis/kings.png sol12.txt
 ```
 
-El procedimiento completo está en `docs/informe.md`.
+El procedimiento completo, paso a paso, está en `analisis/Solucion.md`.
 
 ## Módulos y contratos
 
@@ -138,8 +138,7 @@ stegobmp/
 │   ├── bmp/        # Imágenes BMP de ejemplo
 │   ├── secrets/    # Archivos a ocultar de ejemplo
 │   └── catedra/    # Archivos de la cátedra
-├── grupo12/
-│   ├── consignas/  # Los cuatro BMP entregados por la cátedra
-│   └── recuperadas/ # Lo que se recuperó de cada uno
+├── grupo12/        # Los cuatro BMP entregados por la cátedra
+├── analisis/       # Lo recuperado de cada uno y Solucion.md (estegoanálisis paso a paso)
 └── docs/           # Documentación e informe
 ```
